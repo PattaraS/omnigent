@@ -1,0 +1,151 @@
+# SG Citizen Helpdesk — GovTech demo agent.
+#
+# A small, self-contained agent image for the Singapore GovTech demo. It shows
+# the whole "compose an agent" story on one screen: pick a vendor harness, give
+# it SKILLS (Markdown playbooks), TOOLS (local Python functions your team owns),
+# and governance POLICIES (authored once, enforced on every session). An
+# independent cross-vendor `reviewer` sub-agent demonstrates multi-vendor
+# verification.
+#
+# The scenario is a realistic front-line citizen helpdesk: it validates the
+# details a citizen supplies (phone, NRIC/FIN, postal code) and triages the
+# request to the right agency queue — with identity numbers masked and outbound
+# email gated by policy.
+#
+# This bundle is modeled on examples/scribe and examples/polly (verified,
+# runnable dir-bundles), NOT the higher-level AGENTSPEC.md `llm:` form. The keys
+# below (executor, prompt, guardrails.policies, tools.python auto-discovery,
+# tools.agents) match the shipped examples.
+#
+# Usage:
+#   omnigent run sg-citizen-helpdesk \
+#     --prompt "Normalize and validate this SG number: (+65) 8123-4567"
+#
+# Setup:
+#   Minimal: one Claude provider (the brain + local tools run on claude-sdk).
+#     omnigent setup     (or: export ANTHROPIC_API_KEY=...)
+#   Optional cross-vendor review: also configure an OpenAI provider so the
+#     codex `reviewer` sub-agent can boot (export OPENAI_API_KEY=...).
+
+spec_version: 1
+name: sg-citizen-helpdesk
+description: >-
+  A front-line citizen-helpdesk assistant for a Singapore GovTech demo. It
+  validates the details a citizen supplies — phone numbers, NRIC/FIN, postal
+  codes — using local tools, follows Markdown skills for each procedure, triages
+  the request to the right agency queue, and runs under centrally-authored
+  governance policies (identity numbers masked, outbound email human-approved).
+  Can route its answer through an independent different-vendor reviewer.
+
+# The agent "brain" runs on the Claude Agent SDK. No model is pinned, so the
+# claude-sdk harness runs on whatever Claude provider you configured with
+# `omnigent setup` (Anthropic API key, Claude subscription, an
+# OpenAI-compatible gateway, or a Databricks workspace).
+#
+# For the demo slide we show the docs' terse form:
+#     executor:
+#       harness: claude-sdk
+# Both forms parse; the nested `config.harness` form below is what every
+# shipped dir-bundle example (scribe, polly) uses, so it is the safest for a
+# downloadable bundle.
+executor:
+  type: omnigent
+  config:
+    harness: claude-sdk
+
+prompt: |
+  You are the SG Citizen Helpdesk assistant, a front-line agent for Singapore
+  government services. You help citizens with everyday service questions:
+  validating the details they give you and routing their request to the right
+  agency.
+
+  You own four local Python tools (a single source of truth your team wrote) —
+  always use the tool rather than reasoning out the answer yourself:
+  - `phone_normalize` — canonicalize and validate a Singapore phone number.
+  - `nric_validate` — validate a Singapore NRIC/FIN against its checksum and
+    return a MASKED id (never the full number).
+  - `postal_lookup` — validate a 6-digit postal code and locate its district.
+  - `case_triage` — classify the request into an agency queue and priority.
+
+  Call each tool exactly once for the detail it handles; skip a tool when that
+  detail is absent (do not invent an input). Report the tool's result: for a
+  phone number the canonical E.164 form (+65XXXXXXXX), validity, and type; for
+  an NRIC/FIN the masked id, validity, and holder class; for a postal code the
+  district and region.
+
+  Load and follow the skill that fits the request; skills compose:
+  - citizen-intake — handle a request end to end (validate details, triage,
+    next steps). Start here for a general helpdesk message.
+  - sg-phone-lookup — the phone normalization/validation procedure.
+  - nric-check — the NRIC/FIN validation + masking procedure.
+  Keep answers short and factual.
+
+  Identity handling is a governance requirement, not a style choice: report only
+  the MASKED NRIC/FIN that `nric_validate` returns, never the full id, and never
+  imply that a valid checksum confirms a person's identity.
+
+  If a tool call is blocked by policy, explain plainly that the request was
+  blocked by a governance policy rather than trying to work around it.
+
+  Optional verification: when correctness matters (an identity or eligibility
+  call), route your final answer plus the raw inputs through the `reviewer`
+  sub-agent (a different vendor) via sys_session_send with args.purpose: review.
+  The reviewer reports issues and never edits. If it fails to boot (no OpenAI
+  provider configured), say so and finalize without the cross-check rather than
+  retrying.
+
+async: true
+cancellable: true
+
+# `os_env` registers the sys_os_* tools (filesystem + shell). `sandbox:
+# type: none` keeps the bundle loadable on macOS and lets the agent run the
+# local Python tools in-process.
+os_env:
+  type: caller_process
+  cwd: .
+  sandbox:
+    type: none
+
+# Governance, authored once, enforced on every session. Three policies, each a
+# readable "define once -> applies everywhere" story:
+#   - blast_radius: the shipped catastrophic-command guard.
+#   - gate_outbound_email: a CEL policy that turns any attempt to send outbound
+#     email into an ASK (human approval).
+#   - mask_pii_in_prompts: an ASK when a national-id-style / card / SSN pattern
+#     reaches the model in the request itself — defense in depth so a full
+#     identity number is handled by the tool, not absorbed by the LLM. The phone
+#     category is intentionally NOT enabled: accepting phone numbers is this
+#     helpdesk's job.
+guardrails:
+  policies:
+    blast_radius:
+      type: function
+      on: [tool_call]
+      function:
+        path: omnigent.inner.nessie.policies.blast_radius
+        arguments:
+          gate_pushes: false
+    gate_outbound_email:
+      type: function
+      function:
+        path: omnigent.policies.builtins.cel.cel_policy
+        arguments:
+          expression: >
+            event.type == "tool_call" && event.data.name == "gmail_message_send"
+              ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
+              : {"result": "ALLOW"}
+          reason: "Outbound email must be human-approved."
+    mask_pii_in_prompts:
+      type: function
+      function:
+        path: omnigent.policies.builtins.safety.deny_pii_in_llm_request
+        arguments:
+          pii_types: [ssn, credit_card]
+          action: ASK
+
+# Skills are auto-loaded from skills/<name>/SKILL.md. Tools under tools/python/
+# are auto-discovered (each @tool-decorated function becomes a tool named after
+# the function). The reviewer sub-agent must be listed here to be callable.
+tools:
+  agents:
+    - reviewer

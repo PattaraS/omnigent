@@ -1,0 +1,33 @@
+# Sample citizen inputs to demo (paste one into --prompt or the session chat).
+# Each line: <raw input>            # expected verdict
+
+## Phone numbers  ->  phone_normalize
+9123 4567                        # +6591234567  valid   mobile
+(+65) 8123-4567                  # +6581234567  valid   mobile   (the pinned demo input)
++65 6 234 5678                   # +6562345678  valid   landline
+3123 4567                        # +6531234567  valid   voip
+091234567                        # +6591234567  valid   mobile   (leading 0 stripped)
+71234567                         # invalid: leading digit 7 is not a valid SG prefix
+1234                             # invalid: expected 8 national digits, got 4
+
+## NRIC / FIN  ->  nric_validate   (reported masked, never in full)
+S1234567D                        # *****567D   valid    citizen_or_pr
+T1234567J                        # *****567J   valid    citizen_or_pr
+F1234567N                        # *****567N   valid    foreigner
+S1234567A                        # *****567A   invalid: checksum letter does not match
+X1234567D                        # invalid: not a well-formed id
+
+## Postal codes  ->  postal_lookup
+018989                           # district 1   Raffles Place / Marina   Central
+520123                           # district 18  Tampines / Pasir Ris     East
+640001                           # district 22  Jurong                   West
+998877                           # valid 6 digits, sector 99 unassigned
+12345                            # invalid: expected 6 digits, got 5
+
+## Whole requests  ->  case_triage (routing) + citizen-intake skill
+My HDB rental flat lease is expiring, can someone help urgently?
+  # -> housing / HDB Branch / priority high
+I need to renew my passport at ICA. My id is S1234567D, postal 520123.
+  # -> immigration / ICA Counter; NRIC validated + masked (*****567D); postal district 18 (East)
+Road tax and COE enquiry
+  # -> transport / LTA Feedback (NOT tax/IRAS — "road tax" is an LTA matter)

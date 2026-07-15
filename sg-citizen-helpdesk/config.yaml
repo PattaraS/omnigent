@@ -130,8 +130,14 @@ guardrails:
       function:
         path: omnigent.policies.builtins.cel.cel_policy
         arguments:
+          # The tool name at policy time is namespaced (e.g.
+          # `mcp__google__gmail_message_send`), so match the bare name AND the
+          # `__`-delimited suffix — a bare `== "gmail_message_send"` never
+          # fires against the real MCP tool name and the email slips through.
           expression: >
-            event.type == "tool_call" && event.data.name == "gmail_message_send"
+            event.type == "tool_call" &&
+            (event.data.name == "gmail_message_send" ||
+             event.data.name.endsWith("__gmail_message_send"))
               ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
               : {"result": "ALLOW"}
           reason: "Outbound email must be human-approved."

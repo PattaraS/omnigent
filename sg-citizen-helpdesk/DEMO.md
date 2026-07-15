@@ -108,6 +108,47 @@ text.
 Say: "Routing is transparent, inspectable rules we own and tune — not a model
 guessing."
 
+## Beat 6 — Collaboration (officer escalates to a colleague)
+
+This beat is driven entirely from the **UI**, not a prompt — it needs no bundle
+change. The story: a frontline officer handles a case, then hands the live
+session to a supervisor who joins from another device and signs off.
+
+Setup (verify BEFORE the room — see checklist below):
+- The server is in **multi-user mode** with auth (single-user local mode has no
+  one to share with).
+- You have a second device / second account for the hand-off (e.g. a phone).
+
+Run it:
+1. Handle a case first so there's something to review, e.g.
+   `Renew passport, NRIC S1234567D, postal 520123` — approve the identity ASK,
+   get the masked result routed to ICA Counter.
+2. In the web UI, **share the session** to the colleague (by email) or copy the
+   session link. Give them COMMENT or EDIT access.
+3. The colleague opens it on their **phone / second machine**, sees the same
+   live transcript (masked NRIC, the approval that was granted), and either
+   **replies with a turn** or **comments** on the result.
+4. Back on the main screen, their message/comment appears live.
+
+Say: "Same session, second person, second device — a supervisor signs off on
+the identity decision from their phone. Multi-user, multi-device, real-time; the
+governance (masked ID, the approval that was granted) travels with the session."
+
+Note: this bundle deliberately leaves `agent_session_sharing` OFF — a helpdesk
+agent has no reason to grant access programmatically. Sharing here is a HUMAN
+action in the UI (the platform's permission model), not something the agent
+does. That is the realistic shape for this workload.
+
+### Collaboration pre-checks
+
+- Confirm the server is multi-user: you can reach a share/invite affordance in
+  the session UI, and `/v1/me` returns a real user (not the local single-user
+  sentinel).
+- Have the second account already logged in on the second device before the
+  demo — don't burn stage time on a login.
+- Decide the access level up front: COMMENT (they annotate) vs EDIT (they can
+  send turns). EDIT is the stronger "reply from their phone" beat.
+
 ---
 
 ## Fallback prompts

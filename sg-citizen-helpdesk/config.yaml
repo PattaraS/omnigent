@@ -173,6 +173,21 @@ guardrails:
               ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
               : {"result": "ALLOW"}
           reason: "Outbound email must be human-approved."
+    # Optional cost budget (commented out). Uncomment the four lines below to
+    # cap session LLM spend. Demo-friendly values: the first ASK fires after
+    # ~$0.10 of spend, a second at $0.25, and spend past $0.50 on an expensive
+    # model is denied ("downgrade to continue"). Raise for real use.
+    # NOTE: needs a PRICED provider/model (catalog pricing) — on a subscription
+    # or unpriced gateway model, total_cost_usd is absent and the gate fails
+    # closed with a generic ASK instead of a real threshold crossing.
+    # session_cost_budget:
+    #   type: function
+    #   function:
+    #     path: omnigent.policies.builtins.cost.cost_budget
+    #     arguments:
+    #       max_cost_usd: 0.50
+    #       ask_thresholds_usd: [0.10, 0.25]
+    #       expensive_models: [claude-opus-4-8]
 
 # Skills are auto-loaded from skills/<name>/SKILL.md. Tools under tools/python/
 # are auto-discovered (each @tool-decorated function becomes a tool named after

@@ -33,6 +33,12 @@ the citizen. Under this framing the officer reads those replies as draft answers
 to relay. That is fine to leave as-is for the demo; just don't claim the citizen
 is typing directly.
 
+Two uses of the same tool, both officer-facing: (1) a **case console** —
+officers transact on citizen requests (Beats 1-5); (2) a **knowledge center** —
+officers look up procedures and share findings with each other (Beat 6, the
+collaboration mini-demo). Signpost the switch when you get to Beat 6 so the
+audience isn't confused about what the tool is.
+
 ## 0. One-time prep (before the room)
 
 ```
@@ -137,26 +143,23 @@ text.
 Say: "Routing is transparent, inspectable rules we own and tune — not a model
 guessing."
 
-## Beat 6 — Collaboration (share a case for a second opinion)
+## Beat 6 — Collaboration mini-demo (knowledge center + sharing)
 
-Driven entirely from the **UI**, not a prompt — no bundle change. The story: you
-own a case, hit something worth a second opinion, and **you choose to share that
-one session** with a named colleague. They open it on another device and weigh
-in. Access is granted by you, per session — not standing visibility into a
-queue.
+This is a short **second framing** of the SAME tool, run right after the case
+beats. Signpost the switch clearly so the audience isn't confused about what the
+thing is:
 
-Frame it carefully (this is a government audience):
+> "You've seen an officer transacting on a citizen's case. The same tool is also
+>  a shared internal knowledge center — officers use it to look up procedures,
+>  and they share what they find with each other. Let me show that."
 
-- **This is a peer hand-off, not monitoring.** You are sharing a session you
-  own with one person you name. No one — supervisor or otherwise — can see a
-  citizen's session unless its owner shares it. Say that out loud; it turns the
-  obvious "who's watching all these sessions?" question into a selling point.
-- **The agent does not share anything.** Sharing is a human action in the
-  platform's permission model. This bundle deliberately leaves
-  `agent_session_sharing` OFF — a helpdesk agent has no business granting access
-  programmatically. (If asked about org-wide oversight: that is a separate
-  ADMIN role, not part of this demo. Mention it exists; don't demo it, and don't
-  imply routine surveillance.)
+Why this framing for the collaboration beat: the shared session is about
+**procedural know-how, not a citizen's case** — no citizen PII is in the
+transcript at all. That sidesteps any "should a colleague see this citizen's
+data?" question. Keep it that way: for THIS beat, ask a how-to question, not a
+case with an NRIC.
+
+Driven entirely from the **UI**, not a bundle change.
 
 Setup (verify BEFORE the room — see checklist below):
 - The server is in **multi-user mode** with auth (single-user local mode has no
@@ -164,22 +167,34 @@ Setup (verify BEFORE the room — see checklist below):
 - You have a second device / second account for the hand-off (e.g. a phone).
 
 Run it:
-1. Handle a case first so there's something to look at, e.g.
-   `Renew passport, NRIC S1234567D, postal 520123` — approve the identity ASK,
-   get the masked result routed to ICA Counter.
-2. In the web UI, **share this session** with the colleague by email (or copy
-   the session link). Grant COMMENT or EDIT access.
-3. The colleague opens it on their **phone / second machine**, sees the same
-   live transcript (masked NRIC, the approval that was granted), and either
-   **replies with a turn** or **comments** on the result.
-4. Back on the main screen, their message/comment appears live.
+1. As officer A, ask a **procedural** question — no citizen details, e.g.
+   `Which agency handles road tax and COE enquiries, and what's the process?`
+   (routes to LTA; a clean, PII-free answer worth keeping).
+2. In the web UI, **share this session** with a named colleague (officer B) by
+   email, or copy the session link. Grant COMMENT or EDIT access.
+3. Officer B opens it on their **phone / second machine**, sees the same live
+   transcript, and either **replies with a turn** (asks a follow-up) or
+   **comments** on the answer.
+4. Back on officer A's screen, B's message/comment appears live.
 
-Say: "I own this case. I want a second opinion on the eligibility call, so I
-share THIS session with a named colleague — I grant the access; they had none
-until I did. They open it on their phone and weigh in, and the governance
-(masked ID, the approval I granted) travels with the session. Multi-user,
-multi-device, real-time — and access is explicit and per-session, not a
-dashboard watching everyone."
+Say: "Same tool, second officer, second device. I looked something up, and I
+share THIS session with a colleague I name — I grant the access; they had none
+until I did. They pick it up on their phone and build on it. Access is explicit
+and per-session — no one browses anyone else's sessions."
+
+Guardrails on how you frame it (government audience — mind the rough edges):
+
+- **Peer sharing, not monitoring.** One user shares one session with one named
+  user. No one can see another officer's session unless its owner shares it.
+  Say it out loud; it turns the "who can see all this?" question into a selling
+  point.
+- **The agent shares nothing.** Sharing is a human action in the platform's
+  permission model; this bundle leaves `agent_session_sharing` OFF.
+- **Org-wide oversight is a separate ADMIN role** — mention it exists if asked,
+  don't demo it, don't imply routine surveillance.
+- **Keep citizen PII out of the shared session.** Use the procedural prompt
+  above, not a case with an NRIC. (If you must share a real case, identity is
+  masked — but the PII-free knowledge session is the cleaner beat.)
 
 ### Collaboration pre-checks
 

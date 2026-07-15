@@ -4,6 +4,35 @@ A step-by-step runbook for demoing the bundle (meta-harness, governance,
 cross-vendor review). See `README.md` for what the bundle is; this is how to
 present it.
 
+## Framing: who is the user? (read this first)
+
+Present this as an **internal, officer-facing tool** — a government service
+knowledge center / case console used by public-service staff — **not** a
+public-facing chatbot the citizen logs into. This matters because it keeps the
+whole demo internally consistent, especially the collaboration beat.
+
+- **The Omnigent users are government officers/staff.** Whoever opens a session
+  owns it (the platform grants session ownership to its creator). So "an officer
+  owns a case" is literally true: the officer created the session.
+- **The citizen is who the officer is serving** (walk-in, phone, forwarded
+  request). The officer enters the citizen's details; the tool validates them,
+  masks identity numbers, and routes the request.
+- **Collaboration is officer-to-officer.** An officer shares a case they own
+  with a named colleague for a second opinion (Beat 6). No one sees a citizen's
+  session unless its owner shares it — access is per-session and owner-granted,
+  never a queue anyone can browse.
+
+Do NOT present it as "the public logs in and chats," and do NOT imply an officer
+can watch citizens' sessions. There is no "summon an officer into a citizen's
+chat" flow — that's a different product and not what this demonstrates. If asked
+how a citizen reaches a human: out of scope here; this bundle is the officer's
+assist + governance layer, not a public intake channel.
+
+Note on the agent's voice: the prompt currently addresses "you" as if talking to
+the citizen. Under this framing the officer reads those replies as draft answers
+to relay. That is fine to leave as-is for the demo; just don't claim the citizen
+is typing directly.
+
 ## 0. One-time prep (before the room)
 
 ```

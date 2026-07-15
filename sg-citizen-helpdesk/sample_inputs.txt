@@ -11,7 +11,9 @@
 1234                             # invalid: expected 8 national digits, got 4
 
 ## NRIC / FIN  ->  nric_validate   (reported masked, never in full)
-S1234567D                        # *****567D   valid    citizen_or_pr
+## NOTE: nric_validate is gated by the gate_identity_lookup policy — each of
+## these triggers a human-approval (ASK) card before the lookup runs.
+S1234567D                        # *****567D   valid    citizen_or_pr  (governance demo: ASK)
 T1234567J                        # *****567J   valid    citizen_or_pr
 F1234567N                        # *****567N   valid    foreigner
 S1234567A                        # *****567A   invalid: checksum letter does not match

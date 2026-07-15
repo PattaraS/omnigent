@@ -19,10 +19,16 @@ makes the "compose an agent" story concrete on one screen:
 - **Policies** — centrally-authored governance (`guardrails.policies`),
   enforced on every session:
   - `blast_radius` — the shipped catastrophic-command guard.
-  - `gate_outbound_email` — outbound email becomes a human approval (ASK).
+  - `gate_identity_lookup` — an NRIC/FIN lookup (`nric_validate`) becomes a
+    human approval (ASK). **This is the demo anchor**: it gates a tool the
+    bundle OWNS, so it fires deterministically on any machine.
   - `mask_pii_in_prompts` — a national-id-style / card / SSN pattern in the
     request itself triggers an ASK (defense in depth; the phone category is
     intentionally off — accepting phone numbers is this helpdesk's job).
+  - `gate_outbound_email` — the same pattern applied to a *connector* tool
+    (`gmail_message_send`). Documented example only: it fires when a Gmail MCP
+    is loaded (see the `tools.google` block in `config.yaml`), not on a bare
+    machine. Prefer `gate_identity_lookup` for a live demo.
 - **Sub-agent** — an independent `reviewer` on a *different* vendor (codex) for
   cross-vendor verification.
 
@@ -59,6 +65,35 @@ omnigent run sg-citizen-helpdesk \
 Expected: `(+65) 8123-4567` -> `+6581234567`, valid, mobile. Try the other
 lines in `sample_inputs.txt` — phone numbers, NRIC/FIN, postal codes, and whole
 citizen requests that exercise triage and the `citizen-intake` skill.
+
+## Demo the governance policy
+
+To show a policy firing live, use the bundle-owned anchor — it does not depend
+on any connector:
+
+```
+omnigent run sg-citizen-helpdesk \
+  --prompt "Validate my NRIC S1234567D"
+```
+
+`gate_identity_lookup` turns the `nric_validate` call into an **ASK**, so you
+get a human-approval card before the lookup runs. Approve it and the (masked)
+result comes back; deny it and the agent explains it was blocked by policy.
+
+Two things that will otherwise waste demo time:
+
+- **Fully stop the server between bundle edits.** Omnigent caches the extracted
+  bundle; `--no-session` starts a fresh *conversation* but can still read a
+  *cached spec*. After editing `config.yaml`, run `omnigent stop` (or restart
+  the server) so the new bundle is re-extracted. A resumed conversation replays
+  the spec it was created with, so start a NEW conversation to pick up changes.
+- **The claude-sdk harness inherits the operator's `~/.claude.json` MCP
+  servers.** On a machine that has a Gmail MCP configured there,
+  `gmail_message_send` appears even though this bundle does not declare it — and
+  on a clean machine it is absent. That is why `gate_outbound_email` is only a
+  documented example: to make outbound email a reliable part of the demo,
+  declare the Gmail MCP in the bundle (uncomment the `tools.google` block in
+  `config.yaml` and point it at your deployment's Google MCP launcher).
 
 ## Verify before the demo
 

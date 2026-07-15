@@ -106,16 +106,22 @@ os_env:
   sandbox:
     type: none
 
-# Governance, authored once, enforced on every session. Three policies, each a
+# Governance, authored once, enforced on every session. Each policy is a
 # readable "define once -> applies everywhere" story:
 #   - blast_radius: the shipped catastrophic-command guard.
-#   - gate_outbound_email: a CEL policy that turns any attempt to send outbound
-#     email into an ASK (human approval).
+#   - gate_identity_lookup: a CEL policy that turns any NRIC/FIN lookup into an
+#     ASK (human approval). This is the DEMO ANCHOR: it gates `nric_validate`, a
+#     tool this bundle OWNS, so it fires deterministically on any machine.
 #   - mask_pii_in_prompts: an ASK when a national-id-style / card / SSN pattern
 #     reaches the model in the request itself — defense in depth so a full
 #     identity number is handled by the tool, not absorbed by the LLM. The phone
 #     category is intentionally NOT enabled: accepting phone numbers is this
 #     helpdesk's job.
+#   - gate_outbound_email: the same pattern applied to a CONNECTOR tool
+#     (`gmail_message_send`). Kept as a documented example — it only fires when
+#     a Gmail MCP is actually present (see the commented `tools.google` block
+#     below). Prefer gate_identity_lookup for a live demo, since a bundle-owned
+#     tool is always there; a connector tool depends on the operator's env.
 guardrails:
   policies:
     blast_radius:
@@ -125,6 +131,32 @@ guardrails:
         path: omnigent.inner.nessie.policies.blast_radius
         arguments:
           gate_pushes: false
+    gate_identity_lookup:
+      type: function
+      function:
+        path: omnigent.policies.builtins.cel.cel_policy
+        arguments:
+          # Gate the bundle-owned `nric_validate` tool. Match the bare name AND
+          # a `__`-delimited suffix so it fires whether the runtime surfaces the
+          # tool bare or namespaced (e.g. `mcp__omnigent__nric_validate`).
+          expression: >
+            event.type == "tool_call" &&
+            (event.data.name == "nric_validate" ||
+             event.data.name.endsWith("__nric_validate"))
+              ? {"result": "ASK", "reason": "Identity (NRIC/FIN) lookups require human approval."}
+              : {"result": "ALLOW"}
+          reason: "Identity (NRIC/FIN) lookups require human approval."
+    mask_pii_in_prompts:
+      type: function
+      function:
+        path: omnigent.policies.builtins.safety.deny_pii_in_llm_request
+        arguments:
+          pii_types: [ssn, credit_card]
+          action: ASK
+    # Documented example: gate a CONNECTOR tool. Only fires when a Gmail MCP is
+    # actually loaded (see the commented `tools.google` block below). On a clean
+    # machine with no Gmail MCP there is no such tool, so this policy has nothing
+    # to act on — that is expected. Use gate_identity_lookup for the live demo.
     gate_outbound_email:
       type: function
       function:
@@ -141,17 +173,29 @@ guardrails:
               ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
               : {"result": "ALLOW"}
           reason: "Outbound email must be human-approved."
-    mask_pii_in_prompts:
-      type: function
-      function:
-        path: omnigent.policies.builtins.safety.deny_pii_in_llm_request
-        arguments:
-          pii_types: [ssn, credit_card]
-          action: ASK
 
 # Skills are auto-loaded from skills/<name>/SKILL.md. Tools under tools/python/
 # are auto-discovered (each @tool-decorated function becomes a tool named after
 # the function). The reviewer sub-agent must be listed here to be callable.
+#
+# IMPORTANT — tool surface on the claude-sdk harness: the bundle's own tools are
+# the four auto-discovered Python tools plus the `reviewer` sub-agent. The
+# claude-sdk harness ALSO inherits any MCP servers configured in the operator's
+# ~/.claude.json (github, google, etc.), so on a machine that has a Gmail MCP
+# there, `gmail_message_send` appears even though it is not declared here. That
+# inherited surface is not portable — on a clean demo laptop those connectors
+# are absent. To make outbound email a reliable, self-contained part of the
+# demo, declare the Gmail MCP in the bundle itself (uncomment below) rather than
+# relying on the operator's environment.
 tools:
   agents:
     - reviewer
+  # Optional: declare a Gmail MCP so `gmail_message_send` is present regardless
+  # of the operator's ~/.claude.json, making `gate_outbound_email` demoable.
+  # Swap `command`/`args` for however your deployment launches the Google MCP
+  # (the example below is the Databricks-internal launcher and needs `dbexec` on
+  # PATH; a public bundle would use its own MCP command).
+  # google:
+  #   type: mcp
+  #   command: dbexec
+  #   args: [repo, run, mcp, start-single, google]

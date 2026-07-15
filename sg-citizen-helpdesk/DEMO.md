@@ -183,6 +183,25 @@ Two related variants exist if you need them:
   to a spawned sub-agent; the parent sets it via `sys_session_send`'s
   `cost_budget` argument (not authored directly in this bundle's YAML).
 
-After editing `config.yaml`: `omnigent stop`, relaunch, start a **new**
-conversation (per the demo-hygiene note above) so the change takes effect.
+### Do I need to reload the agent after enabling it?
+
+**Yes — and a plain `omnigent run` will NOT pick up the change.** Two reasons:
+
+1. If a server is already running, `omnigent run` reuses it and returns without
+   re-registering the edited bundle (it prints "A local server is already
+   running … — reusing it"). The bundle is registered only when the server
+   *boots*, so a reused server keeps serving the spec it started with.
+2. A *resumed* conversation replays the spec it was created with, so even after
+   a restart an old conversation won't see the change.
+
+So any `config.yaml` edit (the cost budget included) needs:
+
 ```
+omnigent stop                                    # force a fresh server -> re-registers the bundle
+omnigent run sg-citizen-helpdesk --no-session    # fresh server + fresh conversation
+```
+
+There is no CLI hot-reload of a bundle into a live server. If you target a
+specific server with `--server <url>`, that server process must be restarted
+too. Skipping the `omnigent stop` is the usual reason a newly-enabled policy
+"does nothing".

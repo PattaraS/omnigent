@@ -173,10 +173,10 @@ guardrails:
               ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
               : {"result": "ALLOW"}
           reason: "Outbound email must be human-approved."
-    # Optional cost budget (commented out). Uncomment the four lines below to
-    # cap session LLM spend. Demo-friendly values: the first ASK fires after
-    # ~$0.10 of spend, a second at $0.25, and spend past $0.50 on an expensive
-    # model is denied ("downgrade to continue"). Raise for real use.
+    # Optional session cost budget. Demo-friendly values: a first ASK once
+    # spend passes ~$0.25, a second at $0.50, and all model calls are denied
+    # past $1.00. This gives a turn or two of normal interaction before the
+    # first approval card. Raise for real use.
     # NOTE: needs a PRICED provider/model (catalog pricing) — on a subscription
     # or unpriced gateway model, total_cost_usd is absent and the gate fails
     # closed with a generic ASK instead of a real threshold crossing.
@@ -185,8 +185,8 @@ guardrails:
       function:
         path: omnigent.policies.builtins.cost.cost_budget
         arguments:
-          max_cost_usd: 0.50
-          ask_thresholds_usd: [0.10, 0.25]
+          max_cost_usd: 1.00
+          ask_thresholds_usd: [0.25, 0.50]
           # expensive_models (optional): if set, the hard cap only DENYs while
           # the brain runs one of these (a "downgrade to continue" gate). Omit
           # it (as here) to apply the cap to EVERY model. Substring match, so

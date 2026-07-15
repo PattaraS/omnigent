@@ -108,11 +108,26 @@ text.
 Say: "Routing is transparent, inspectable rules we own and tune — not a model
 guessing."
 
-## Beat 6 — Collaboration (officer escalates to a colleague)
+## Beat 6 — Collaboration (share a case for a second opinion)
 
-This beat is driven entirely from the **UI**, not a prompt — it needs no bundle
-change. The story: a frontline officer handles a case, then hands the live
-session to a supervisor who joins from another device and signs off.
+Driven entirely from the **UI**, not a prompt — no bundle change. The story: you
+own a case, hit something worth a second opinion, and **you choose to share that
+one session** with a named colleague. They open it on another device and weigh
+in. Access is granted by you, per session — not standing visibility into a
+queue.
+
+Frame it carefully (this is a government audience):
+
+- **This is a peer hand-off, not monitoring.** You are sharing a session you
+  own with one person you name. No one — supervisor or otherwise — can see a
+  citizen's session unless its owner shares it. Say that out loud; it turns the
+  obvious "who's watching all these sessions?" question into a selling point.
+- **The agent does not share anything.** Sharing is a human action in the
+  platform's permission model. This bundle deliberately leaves
+  `agent_session_sharing` OFF — a helpdesk agent has no business granting access
+  programmatically. (If asked about org-wide oversight: that is a separate
+  ADMIN role, not part of this demo. Mention it exists; don't demo it, and don't
+  imply routine surveillance.)
 
 Setup (verify BEFORE the room — see checklist below):
 - The server is in **multi-user mode** with auth (single-user local mode has no
@@ -120,24 +135,22 @@ Setup (verify BEFORE the room — see checklist below):
 - You have a second device / second account for the hand-off (e.g. a phone).
 
 Run it:
-1. Handle a case first so there's something to review, e.g.
+1. Handle a case first so there's something to look at, e.g.
    `Renew passport, NRIC S1234567D, postal 520123` — approve the identity ASK,
    get the masked result routed to ICA Counter.
-2. In the web UI, **share the session** to the colleague (by email) or copy the
-   session link. Give them COMMENT or EDIT access.
+2. In the web UI, **share this session** with the colleague by email (or copy
+   the session link). Grant COMMENT or EDIT access.
 3. The colleague opens it on their **phone / second machine**, sees the same
    live transcript (masked NRIC, the approval that was granted), and either
    **replies with a turn** or **comments** on the result.
 4. Back on the main screen, their message/comment appears live.
 
-Say: "Same session, second person, second device — a supervisor signs off on
-the identity decision from their phone. Multi-user, multi-device, real-time; the
-governance (masked ID, the approval that was granted) travels with the session."
-
-Note: this bundle deliberately leaves `agent_session_sharing` OFF — a helpdesk
-agent has no reason to grant access programmatically. Sharing here is a HUMAN
-action in the UI (the platform's permission model), not something the agent
-does. That is the realistic shape for this workload.
+Say: "I own this case. I want a second opinion on the eligibility call, so I
+share THIS session with a named colleague — I grant the access; they had none
+until I did. They open it on their phone and weigh in, and the governance
+(masked ID, the approval I granted) travels with the session. Multi-user,
+multi-device, real-time — and access is explicit and per-session, not a
+dashboard watching everyone."
 
 ### Collaboration pre-checks
 
@@ -148,6 +161,8 @@ does. That is the realistic shape for this workload.
   demo — don't burn stage time on a login.
 - Decide the access level up front: COMMENT (they annotate) vs EDIT (they can
   send turns). EDIT is the stronger "reply from their phone" beat.
+- Know your one-liner for the oversight question: sharing is owner-granted and
+  per-session; org-wide visibility is a separate admin role, out of scope here.
 
 ---
 

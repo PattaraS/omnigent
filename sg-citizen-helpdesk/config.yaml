@@ -109,9 +109,14 @@ os_env:
 # Governance, authored once, enforced on every session. Each policy is a
 # readable "define once -> applies everywhere" story:
 #   - blast_radius: the shipped catastrophic-command guard.
-#   - gate_identity_lookup: a CEL policy that turns any NRIC/FIN lookup into an
-#     ASK (human approval). This is the DEMO ANCHOR: it gates `nric_validate`, a
-#     tool this bundle OWNS, so it fires deterministically on any machine.
+#   - gate_identity_lookup: turns any NRIC/FIN lookup into an ASK (human
+#     approval). This is the DEMO ANCHOR: it gates `nric_validate`, a tool this
+#     bundle OWNS, so it fires deterministically on any machine. Implemented
+#     with the built-in risk_score policy (threshold 0 = always escalate the
+#     guarded tool), NOT a CEL expression — cel_policy depends on an optional
+#     `cel_expr_python` extra that some servers don't install, which makes an
+#     uploaded bundle fail with "not a registered policy handler". risk_score is
+#     a core builtin, always registered.
 #   - mask_pii_in_prompts: an ASK when a national-id-style / card / SSN pattern
 #     reaches the model in the request itself — defense in depth so a full
 #     identity number is handled by the tool, not absorbed by the LLM. The phone
@@ -134,17 +139,15 @@ guardrails:
     gate_identity_lookup:
       type: function
       function:
-        path: omnigent.policies.builtins.cel.cel_policy
+        path: omnigent.policies.builtins.risk_score.risk_score_policy
         arguments:
-          # Gate the bundle-owned `nric_validate` tool. Match the bare name AND
-          # a `__`-delimited suffix so it fires whether the runtime surfaces the
-          # tool bare or namespaced (e.g. `mcp__omnigent__nric_validate`).
-          expression: >
-            event.type == "tool_call" &&
-            (event.data.name == "nric_validate" ||
-             event.data.name.endsWith("__nric_validate"))
-              ? {"result": "ASK", "reason": "Identity (NRIC/FIN) lookups require human approval."}
-              : {"result": "ALLOW"}
+          # threshold 0 => the guarded tool always escalates (the session risk
+          # score starts at 0 and is >= 0). guarded_tools matching is
+          # MCP-agnostic: "nric_validate" also matches a namespaced surfacing
+          # like "mcp__omnigent__nric_validate".
+          threshold: 0
+          guarded_tools: [nric_validate]
+          escalate_action: ASK
           reason: "Identity (NRIC/FIN) lookups require human approval."
     mask_pii_in_prompts:
       type: function
@@ -160,18 +163,13 @@ guardrails:
     gate_outbound_email:
       type: function
       function:
-        path: omnigent.policies.builtins.cel.cel_policy
+        path: omnigent.policies.builtins.risk_score.risk_score_policy
         arguments:
-          # The tool name at policy time is namespaced (e.g.
-          # `mcp__google__gmail_message_send`), so match the bare name AND the
-          # `__`-delimited suffix — a bare `== "gmail_message_send"` never
-          # fires against the real MCP tool name and the email slips through.
-          expression: >
-            event.type == "tool_call" &&
-            (event.data.name == "gmail_message_send" ||
-             event.data.name.endsWith("__gmail_message_send"))
-              ? {"result": "ASK", "reason": "Outbound email must be human-approved."}
-              : {"result": "ALLOW"}
+          # Same MCP-agnostic guarded-tool match: "gmail_message_send" also
+          # matches the namespaced "mcp__google__gmail_message_send".
+          threshold: 0
+          guarded_tools: [gmail_message_send]
+          escalate_action: ASK
           reason: "Outbound email must be human-approved."
     # Optional session cost budget. Demo-friendly values: a first ASK once
     # spend passes ~$0.25, a second at $0.50, and all model calls are denied
